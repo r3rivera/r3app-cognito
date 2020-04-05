@@ -87,12 +87,26 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider{
             throw new AuthException("R3AppAuth::UserNotConfirmed", uncex);
         }catch(ResourceNotFoundException ex){
             throw new AuthException("R3AppAuth::ResourceNotFound", ex);
-        }catch(Exception ex){
+        }catch (InvalidParameterException ex){
+            throw new AuthException("R3AppAuth::InvalidParam", ex);
+        } catch(Exception ex){
             throw new AuthException("R3AppAuth::GenericError", ex);
         }
 
-        if(result == null || result.getAuthenticationResult() == null){
+        if(result == null){
             throw new AuthException("R3AppAuth::NoResponseError", null);
+        }
+
+        if(result.getAuthenticationResult() == null){
+            /*
+             * This will happen only if the user provided a temp password
+             */
+            final AwsCognitoResult response = new AwsCognitoResult(result.getSession(),
+                    null,
+                    null,
+                    AwsResponseType.getType(result.getChallengeName())
+            );
+            return new AwsCognitoResponse(response, true);
         }
 
         final AwsCognitoResult response = new AwsCognitoResult(

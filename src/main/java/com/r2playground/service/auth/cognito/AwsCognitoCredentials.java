@@ -51,4 +51,16 @@ public class AwsCognitoCredentials implements AWSCredentials, AwsCognitoConfig {
     public void setPoolId(String poolId) {
         this.poolId = poolId;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("AwsCognitoCredentials{");
+        sb.append("region='").append(region).append('\'');
+        sb.append(", awsAccessKey='").append(awsAccessKey).append('\'');
+        sb.append(", awsSecretKey='").append(awsSecretKey).append('\'');
+        sb.append(", clientId='").append(clientId).append('\'');
+        sb.append(", poolId='").append(poolId).append('\'');
+        sb.append('}');
+        return sb.toString();
+    }
 }

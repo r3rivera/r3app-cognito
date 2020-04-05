@@ -9,7 +9,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Use the Cognito where the username is an email address
+ * Use the Cognito where the username is an email address. The sign up flow are as follows:
+ *
+ * 1. User registers and cognito will send a temporary password to the user's email
+ * 2. User logs in using the temporary password.
+ * 3. User must change the temporary password with a new password.
+ * 4. User logs in as part of successful password change.
+ *
  */
 public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider{
 
@@ -288,6 +294,77 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider{
             throw new AuthException("R3AppAuth::NotAUthorized", ex);
         }catch(LimitExceededException ex){
             throw new AuthException("R3AppAuth::LimitExceedException", ex);
+        }catch(Exception ex){
+            throw new AuthException("R3AppAuth::GenericError", ex);
+        }
+        return new AwsCognitoResponse(null, result != null);
+    }
+
+    /**
+     * Confirm the forgotten password by getting a new password with a valid confirmation code.
+     *
+     * @param username
+     * @param newPassword
+     * @param confirmationCode
+     * @return
+     */
+    public AwsCognitoResponse confirmForgotPassword(String username, String newPassword, String confirmationCode){
+        final ConfirmForgotPasswordRequest confirmForgotPasswordRequest = new ConfirmForgotPasswordRequest()
+                .withUsername(username)
+                .withPassword(newPassword)
+                .withConfirmationCode(confirmationCode)
+                .withClientId(getAwsCognitoConfig().getClientId());
+
+        ConfirmForgotPasswordResult result;
+        try{
+            result = getIdentityProvider().confirmForgotPassword(confirmForgotPasswordRequest);
+        }catch(InvalidPasswordException ex){
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(INVALID_PASSWORD_VALUE), INVALID_PASSWORD_VALUE));
+        }catch(CodeMismatchException ex){
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(CONFIRMATION_CODE_USER_MISMATCHED), CONFIRMATION_CODE_USER_MISMATCHED));
+        }catch(ExpiredCodeException ex){
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(CONFIRMATION_CODE_EXPIRED), CONFIRMATION_CODE_EXPIRED));
+        }catch(UserNotFoundException ex){
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(USER_NOT_FOUND), USER_NOT_FOUND));
+        }catch(Exception ex){
+            throw new AuthException("R3AppAuth::GenericError", ex);
+        }
+        return new AwsCognitoResponse(null, result != null);
+    }
+
+
+    /**
+     * Resend a temporary password to user who may have signed up but never received email with the temporary password.
+     * TODO: Need to handle the following use case
+     * 1. User completed the registration but never received the temp password from the email
+     * 2. User completed the registration but went to forgot password flow.
+     *
+     * @param username
+     * @return
+     */
+    public AwsCognitoResponse resendTempPassword(String username){
+
+        final AdminCreateUserRequest adminCreateUserRequest = new AdminCreateUserRequest()
+                .withUserPoolId(getAwsCognitoConfig().getPoolId())
+                .withUsername(username)
+                .withMessageAction(MessageActionType.RESEND)
+                .withDesiredDeliveryMediums(DeliveryMediumType.EMAIL);
+
+        AdminCreateUserResult result = null;
+
+        try{
+            result = getIdentityProvider().adminCreateUser(adminCreateUserRequest);
+
+        }catch(InvalidParameterException ex){
+            throw new AuthException("R3AppAuth::InvalidParams", ex);
+        }catch(UserNotFoundException ex){
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(USER_NOT_FOUND), USER_NOT_FOUND));
+        }catch(TooManyRequestsException ex){
+            throw new AuthException("R3AppAuth::TooManyRequest", ex);
+        }catch(CodeDeliveryFailureException ex){
+            throw new AuthException("R3AppAuth::CodeDelivery", ex);
+        }catch(NotAuthorizedException ex){
+            throw new AuthException("R3AppAuth::NotAuthorized", ex);
         }catch(Exception ex){
             throw new AuthException("R3AppAuth::GenericError", ex);
         }

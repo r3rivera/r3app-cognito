@@ -51,7 +51,7 @@ public class AwsCognitoDefaultProviderTest {
     @Test
     public void loginWithTempPassword(){
         assertNotNull(TEST_EMAIL);
-        
+
         final AwsCognitoResponse tempResp = provider.loginUser(TEST_EMAIL, "P4H.1IWb");
         assertNotNull(tempResp);
         assertTrue(tempResp.isSuccess());

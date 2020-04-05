@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * 4. User logs in as part of successful password change.
  *
  */
-public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider{
+public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider implements AwsCognitoProvider{
 
     public AwsCognitoDefaultProvider(AwsCognitoCredentials credentials){
         super(credentials);

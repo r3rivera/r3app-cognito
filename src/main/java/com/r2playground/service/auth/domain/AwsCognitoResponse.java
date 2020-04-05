@@ -1,27 +1,30 @@
 package com.r2playground.service.auth.domain;
 
 public class AwsCognitoResponse {
-    private String challengeSessionId;
-    private String accessToken;
-    private String refreshToken;
-    private AwsResponseType responseType;
 
-    public AwsCognitoResponse(String challengeSessionId, String accessToken, String refreshToken, AwsResponseType responseType) {
-        this.challengeSessionId = challengeSessionId;
-        this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
-        this.responseType = responseType;
+    private boolean success;
+    private AwsCognitoResult result;
+    private AwsCognitoError error;
+
+
+    public AwsCognitoResponse(AwsCognitoError error) {
+        this.success = false;
+        this.error = error;
+    }
+    public AwsCognitoResponse(AwsCognitoResult result, boolean success) {
+        this.success = success;
+        this.result = result;
     }
 
-    public String getChallengeSessionId() {
-        return challengeSessionId;
+    public AwsCognitoResult getResult() {
+        return result;
     }
 
-    public String getAccessToken() {
-        return accessToken;
+    public boolean isSuccess() {
+        return success;
     }
 
-    public String getRefreshToken() {
-        return refreshToken;
+    public AwsCognitoError getError() {
+        return error;
     }
 }

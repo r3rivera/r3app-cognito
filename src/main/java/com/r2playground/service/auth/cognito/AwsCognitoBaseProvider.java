@@ -4,7 +4,24 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClientBuilder;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class AwsCognitoBaseProvider {
+
+    protected static final String USER_NOT_FOUND = "User Not Found";
+    protected static final String INVALID_USER_PASSWORD = "Invalid Credentials";
+    protected static final String PASSWORD_RESET_REQUIRED = "Password Expired";
+
+
+    protected static Map<String, Integer> errorCodes;
+
+    static{
+        errorCodes = new HashMap<>();
+        errorCodes.put(USER_NOT_FOUND, 2000);
+        errorCodes.put(INVALID_USER_PASSWORD, 2001);
+        errorCodes.put(PASSWORD_RESET_REQUIRED, 2002);
+    }
 
     private AwsCognitoCredentials credentials;
     private AWSCognitoIdentityProvider identityProvider;

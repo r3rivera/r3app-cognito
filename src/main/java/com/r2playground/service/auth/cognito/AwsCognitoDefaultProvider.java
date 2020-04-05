@@ -89,13 +89,13 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider{
             throw new AuthException("R3AppAuth::NoResponseError", null);
         }
 
-        final AwsCognitoResponse response = new AwsCognitoResponse(
+        final AwsCognitoResult response = new AwsCognitoResult(
                 result.getSession(),
                 result.getAuthenticationResult().getAccessToken(),
                 result.getAuthenticationResult().getRefreshToken(),
                 AwsResponseType.getType(result.getChallengeName())
         );
-        return response;
+        return new AwsCognitoResponse(response, true);
     }
 
     /**
@@ -121,30 +121,26 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider{
         RespondToAuthChallengeResult challengeResult = null;
 
         try{
-
             challengeResult = getIdentityProvider().respondToAuthChallenge(challengeRequest);
-
         }catch(UserNotFoundException unfex) {
-
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(USER_NOT_FOUND), USER_NOT_FOUND));
         }catch(InvalidPasswordException invex){
-
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(INVALID_USER_PASSWORD), INVALID_USER_PASSWORD));
         }catch(Exception ex){
-
+            throw new AuthException("R3AppAuth::GenericError", ex);
         }
-        final AuthenticationResultType resultType = challengeResult.getAuthenticationResult();
 
         if(challengeResult == null && challengeResult.getAuthenticationResult() == null)   {
             return null;
         }
 
-        final AwsCognitoResponse response = new AwsCognitoResponse(
+        final AwsCognitoResult response = new AwsCognitoResult(
                 challengeResult.getSession(),
                 challengeResult.getAuthenticationResult().getAccessToken(),
                 challengeResult.getAuthenticationResult().getRefreshToken(),
                 AwsResponseType.getType(challengeResult.getChallengeName())
         );
-
-        return response;
+        return new AwsCognitoResponse(response, true);
 
     }
 
@@ -169,7 +165,6 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider{
      * @return
      */
     public UserDetail getUserDetailsByAdmin(String username, List<AwsUserAttributes> userAttributes){
-
         final AdminGetUserRequest adminRequest = new AdminGetUserRequest()
                 .withUsername(username).withUserPoolId(getAwsCognitoConfig().getPoolId());
         final AdminGetUserResult result = getIdentityProvider().adminGetUser(adminRequest);
@@ -182,7 +177,6 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider{
     private UserDetail getUserDetails(List<AttributeType> attributes, List<AwsUserAttributes> userAttributes){
         final UserDetail user = new UserDetail();
         Map<String, String> attributeMaps = null;
-
         if(userAttributes != null && !userAttributes.isEmpty()){
             attributeMaps = userAttributes.stream().collect(Collectors.toMap(AwsUserAttributes::getName, AwsUserAttributes::getValues));
         }
@@ -210,5 +204,95 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider{
         }
         return user;
     }
+
+
+    /**
+     * Gets the user details stored in the provider
+     *
+     * @param accessToken - token provided by the provider
+     * @param userAttributes
+     */
+    public AwsUser getUserDetails(String accessToken,  List<AwsUserAttributes> userAttributes){
+        final GetUserRequest userRequest = new GetUserRequest().withAccessToken(accessToken);
+        GetUserResult userResult = null;
+        try {
+            userResult = getIdentityProvider().getUser(userRequest);
+
+        }catch(NotAuthorizedException ex){
+            throw new AuthException("R3AppAuth::NotAUthorized", ex);
+        }catch(PasswordResetRequiredException ex){
+            throw new AuthException("R3AppAuth::PasswordReset", ex);
+        }catch(ResourceNotFoundException ex){
+            throw new AuthException("R3AppAuth::ResourceNotFound", ex);
+        }catch(InvalidParameterException ex){
+            throw new AuthException("R3AppAuth::InvalidParam", ex);
+        }catch(InternalErrorException ex){
+            throw new AuthException("R3AppAuth::InternalError", ex);
+        }catch(Exception ex){
+            throw new AuthException("R3AppAuth::GenericError", ex);
+        }
+
+        return getUserDetails(userResult.getUserAttributes(), userAttributes);
+
+    }
+
+    /**
+     * Request a change of password for a given user with the accesstoken
+     * @param accessToken
+     * @param oldPassword
+     * @param newPassword
+     * @param traceId
+     */
+    public AwsCognitoResponse changePassword(String accessToken, String oldPassword, String newPassword, String traceId){
+        final ChangePasswordRequest request = new ChangePasswordRequest()
+                .withAccessToken(accessToken)
+                .withPreviousPassword(oldPassword)
+                .withProposedPassword(newPassword);
+        ChangePasswordResult result;
+        try{
+            result = getIdentityProvider().changePassword(request);
+        }catch(InvalidPasswordException ex) {
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(INVALID_USER_PASSWORD), INVALID_USER_PASSWORD));
+        }catch(NotAuthorizedException ex) {
+            throw new AuthException("R3AppAuth::NotAuthorized", ex);
+        }catch(PasswordResetRequiredException ex) {
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(PASSWORD_RESET_REQUIRED), PASSWORD_RESET_REQUIRED));
+        }catch(InvalidParameterException ex) {
+            throw new AuthException("R3AppAuth::InvalidParameter", ex);
+        }catch(Exception ex){
+            throw new AuthException("R3AppAuth::GenericError", ex);
+        }
+        return new AwsCognitoResponse(null, result != null);
+    }
+
+    /**
+     * Invoke a forgotten password for a given username. If the user is still using the temp password and requesting for this flow
+     * then provider will throw a NotAuthorizedException
+     *
+     * @param username
+     *
+     */
+    public AwsCognitoResponse forgotPassword(String username){
+        final ForgotPasswordRequest forgotPasswordRequest = new ForgotPasswordRequest()
+                .withClientId(getAwsCognitoConfig().getClientId())
+                .withUsername(username);
+
+        ForgotPasswordResult result = null;
+        try{
+            result = getIdentityProvider().forgotPassword(forgotPasswordRequest);
+        }catch(CodeDeliveryFailureException ex){
+            throw new AuthException("R3AppAuth::CodeDelivery", ex);
+        }catch(UserNotFoundException ex){
+            return new AwsCognitoResponse(new AwsCognitoError(errorCodes.get(USER_NOT_FOUND), USER_NOT_FOUND));
+        }catch (NotAuthorizedException ex) {
+            throw new AuthException("R3AppAuth::NotAUthorized", ex);
+        }catch(LimitExceededException ex){
+            throw new AuthException("R3AppAuth::LimitExceedException", ex);
+        }catch(Exception ex){
+            throw new AuthException("R3AppAuth::GenericError", ex);
+        }
+        return new AwsCognitoResponse(null, result != null);
+    }
+
 
 }

@@ -1,16 +1,14 @@
 package com.r2playground.service.auth.cognito;
 
 import com.amazonaws.services.cognitoidp.model.*;
-import com.r2playground.service.auth.domain.AwsCognitoResponse;
 import com.r2playground.service.auth.domain.AwsUser;
-import com.r2playground.service.auth.domain.AwsUserAttributes;
-import com.r2playground.service.auth.domain.UserDetail;
 import com.r2playground.service.auth.exception.AuthException;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-public class AwsCognitoUserPasswordProvider extends AwsCognitoBaseProvider implements AwsCognitoProvider{
+public class AwsCognitoUserPasswordProvider extends AwsCognitoDefaultProvider {
 
     public AwsCognitoUserPasswordProvider(AwsCognitoCredentials credentials){
         super(credentials);
@@ -23,6 +21,7 @@ public class AwsCognitoUserPasswordProvider extends AwsCognitoBaseProvider imple
      */
     public boolean createUser(AwsUser user){
 
+        boolean userCreated = false;
         final AdminCreateUserRequest adminCreateUserRequest = new AdminCreateUserRequest()
                 .withUserPoolId(getAwsCognitoConfig().getPoolId())
                 .withUsername(user.getUserName())
@@ -32,15 +31,50 @@ public class AwsCognitoUserPasswordProvider extends AwsCognitoBaseProvider imple
                         new AttributeType().withName("email").withValue(user.getEmail()),
                         new AttributeType().withName("given_name").withValue(user.getFirstName()),
                         new AttributeType().withName("family_name").withValue(user.getLastName()),
-                        new AttributeType().withName("phone_number").withValue(user.getPhoneNumber())
+                        new AttributeType().withName("phone_number").withValue(user.getPhoneNumber()),
+                        new AttributeType().withName("email_verified").withValue("false")
                 ));
 
         AdminCreateUserResult createUserResult;
         try{
+
+            //Cognito Status = FORCE_CHANGE_PASSWORD and No sending of temp password
             createUserResult = getIdentityProvider().adminCreateUser(adminCreateUserRequest);
+
 
             if(createUserResult != null){
 
+                Map<String, String> authParams = new HashMap<>();
+                authParams.put("USERNAME", user.getUserName());
+                authParams.put("PASSWORD", user.getPassword());
+
+
+                final AdminInitiateAuthRequest adminInitiateAuthRequest = new AdminInitiateAuthRequest()
+                        .withClientId(getAwsCognitoConfig().getClientId())
+                        .withUserPoolId(getAwsCognitoConfig().getPoolId())
+                        .withAuthFlow(AuthFlowType.ADMIN_NO_SRP_AUTH)
+                        .withAuthParameters(authParams);
+
+                //Cognito Status = NEW_PASSWORD_REQUIRED, Session is found and null AuthenticationResultType
+                final AdminInitiateAuthResult authResult = getIdentityProvider().adminInitiateAuth(adminInitiateAuthRequest);
+
+                if(authResult != null && authResult.getSession() != null
+                        && ChallengeNameType.NEW_PASSWORD_REQUIRED.name().equals(authResult.getChallengeName())){
+                    authParams = new HashMap<>();
+                    authParams.put("USERNAME", user.getUserName());
+                    authParams.put("NEW_PASSWORD", user.getPassword());
+
+
+                    final AdminRespondToAuthChallengeRequest respondToAuthChallengeRequest = new AdminRespondToAuthChallengeRequest()
+                            .withClientId(getAwsCognitoConfig().getClientId())
+                            .withUserPoolId(getAwsCognitoConfig().getPoolId())
+                            .withChallengeName(ChallengeNameType.NEW_PASSWORD_REQUIRED)
+                            .withSession(authResult.getSession())
+                            .withChallengeResponses(authParams);
+
+                    final AdminRespondToAuthChallengeResult respondToAuthChallengeResult = getIdentityProvider().adminRespondToAuthChallenge(respondToAuthChallengeRequest);
+                    userCreated = (respondToAuthChallengeResult != null);
+                }
             }
 
         }catch(UsernameExistsException userex){
@@ -52,52 +86,11 @@ public class AwsCognitoUserPasswordProvider extends AwsCognitoBaseProvider imple
         }
 
         final UserType userType = createUserResult.getUser();
-        return userType.isEnabled();
+        return (userType.isEnabled() && userCreated);
 
     }
 
-    @Override
-    public AwsCognitoResponse loginUser(String username, String password) {
-        return null;
-    }
 
-    @Override
-    public AwsCognitoResponse respondToAuthChallenge(String username, String newPassword, String challengeSessionId) {
-        return null;
-    }
 
-    @Override
-    public boolean deleteUserDetailByAdmin(String username) {
-        return false;
-    }
 
-    @Override
-    public UserDetail getUserDetailsByAdmin(String username, List<AwsUserAttributes> userAttributes) {
-        return null;
-    }
-
-    @Override
-    public AwsUser getUserDetails(String accessToken, List<AwsUserAttributes> userAttributes) {
-        return null;
-    }
-
-    @Override
-    public AwsCognitoResponse changePassword(String accessToken, String oldPassword, String newPassword) {
-        return null;
-    }
-
-    @Override
-    public AwsCognitoResponse forgotPassword(String username) {
-        return null;
-    }
-
-    @Override
-    public AwsCognitoResponse confirmForgotPassword(String username, String newPassword, String confirmationCode) {
-        return null;
-    }
-
-    @Override
-    public AwsCognitoResponse resendTempPassword(String username) {
-        return null;
-    }
 }

@@ -261,9 +261,9 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider implements
      * @param accessToken
      * @param oldPassword
      * @param newPassword
-     * @param traceId
+     *
      */
-    public AwsCognitoResponse changePassword(String accessToken, String oldPassword, String newPassword, String traceId){
+    public AwsCognitoResponse changePassword(String accessToken, String oldPassword, String newPassword){
         final ChangePasswordRequest request = new ChangePasswordRequest()
                 .withAccessToken(accessToken)
                 .withPreviousPassword(oldPassword)

@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class AwsCognitoDefaultProviderTest {
 
     private static String TEST_EMAIL = "";
-    private static AwsCognitoDefaultProvider provider;
+    private static AwsCognitoProvider provider;
 
     @BeforeAll
     public static void init(){

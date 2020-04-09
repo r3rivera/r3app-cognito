@@ -7,6 +7,7 @@ public class UserDetail implements AwsUser {
     private String userName;
     private String firstName;
     private String lastName;
+    private String password;
     private String email;
     private String phoneNumber;
     private List<AwsUserAttributes> attributes;
@@ -33,6 +34,15 @@ public class UserDetail implements AwsUser {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getEmail() {

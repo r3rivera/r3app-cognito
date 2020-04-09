@@ -7,6 +7,7 @@ public interface AwsUser {
     String getUserName();
     String getFirstName();
     String getLastName();
+    String getPassword();
     String getEmail();
     String getPhoneNumber();
     List<AwsUserAttributes> getAttributes();

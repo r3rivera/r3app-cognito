@@ -1,6 +1,7 @@
 package com.r2playground.service.auth.cognito;
 
 import com.amazonaws.services.cognitoidp.model.*;
+import com.r2playground.service.auth.domain.AwsCognitoResponse;
 import com.r2playground.service.auth.domain.AwsUser;
 import com.r2playground.service.auth.exception.AuthException;
 
@@ -92,7 +93,7 @@ public class AwsCognitoUserPasswordProvider extends AwsCognitoDefaultProvider {
 
 
     @Override
-    public boolean verifyUserEmailAttribute(String accessToken) {
+    public boolean generateCodeForEmailVerification(String accessToken) {
         final GetUserAttributeVerificationCodeRequest verificationCodeRequest = new GetUserAttributeVerificationCodeRequest()
                 .withAccessToken(accessToken)
                 .withAttributeName("email");
@@ -109,4 +110,21 @@ public class AwsCognitoUserPasswordProvider extends AwsCognitoDefaultProvider {
     }
 
 
+    @Override
+    public boolean verifyEmailByCode(String accessToken, String code) {
+        final VerifyUserAttributeRequest verifyEmailRequest = new VerifyUserAttributeRequest()
+                .withAccessToken(accessToken)
+                .withAttributeName("email")
+                .withCode(code);
+        VerifyUserAttributeResult verifyEmailResult;
+        try{
+            verifyEmailResult = getIdentityProvider().verifyUserAttribute(verifyEmailRequest);
+        }catch(InvalidParameterException invex){
+            throw new AuthException("R3AppAuth::InvalidParameterProvided", invex);
+        }catch(CodeDeliveryFailureException codex){
+            throw new AuthException("R3AppAuth::CodeDeliveryError", codex);
+        }
+        return (verifyEmailResult != null && verifyEmailResult.getSdkHttpMetadata().getHttpStatusCode() == 200);
+
+    }
 }

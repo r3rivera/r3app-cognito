@@ -386,9 +386,12 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider implements
     }
 
     @Override
-    public boolean verifyUserEmailAttribute(String username) {
+    public boolean generateCodeForEmailVerification(String accessToken) {
         throw new UnsupportedOperationException("Not supported for this functionality!");
     }
 
-
+    @Override
+    public boolean verifyEmailByCode(String accessToken, String code) {
+        throw new UnsupportedOperationException("Not supported for this functionality!");
+    }
 }

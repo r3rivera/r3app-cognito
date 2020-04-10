@@ -2,6 +2,7 @@ package com.r2playground.service.auth.cognito;
 
 import com.r2playground.service.auth.domain.AwsCognitoResponse;
 import com.r2playground.service.auth.domain.UserDetail;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -90,12 +91,25 @@ public class AwsCognitoDefaultProviderTest {
     }
 
     @Test
-    @DisplayName("Verify Email Attribute")
+    @DisplayName("Generate Code for Email verification, Manual exceution only")
+    @Ignore
     public void verifyEmailAttributeTest(){
         assertNotNull(TEST_EMAIL);
         final AwsCognitoResponse loginResp = provider.loginUser(TEST_EMAIL, "S0meDumbPasswd!");
+        boolean response = provider.generateCodeForEmailVerification(loginResp.getResult().getAccessToken());
+        assertTrue(response);
+    }
 
-        boolean response = provider.verifyUserEmailAttribute(loginResp.getResult().getAccessToken());
+
+    @Test
+    @DisplayName("Verify email by code. Manual execution only with valid code")
+    @Ignore
+    public void verifyEmailByCode(){
+        String verifyCode = "";
+        assertNotNull(TEST_EMAIL);
+        assertTrue(!verifyCode.isEmpty());
+        final AwsCognitoResponse loginResp = provider.loginUser(TEST_EMAIL, "S0meDumbPasswd!");
+        boolean response = provider.verifyEmailByCode(loginResp.getResult().getAccessToken(), verifyCode);
         assertTrue(response);
     }
 

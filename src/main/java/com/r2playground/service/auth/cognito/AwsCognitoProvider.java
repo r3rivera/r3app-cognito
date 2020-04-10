@@ -19,6 +19,7 @@ public interface AwsCognitoProvider {
     AwsCognitoResponse forgotPassword(String username);
     AwsCognitoResponse confirmForgotPassword(String username, String newPassword, String confirmationCode);
     AwsCognitoResponse resendTempPassword(String username);
-    boolean verifyUserEmailAttribute(String accessToken);
+    boolean generateCodeForEmailVerification(String accessToken);
+    boolean verifyEmailByCode(String accessToken, String code);
 
 }

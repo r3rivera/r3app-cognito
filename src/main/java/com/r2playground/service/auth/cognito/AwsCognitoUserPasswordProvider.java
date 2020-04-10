@@ -1,7 +1,6 @@
 package com.r2playground.service.auth.cognito;
 
 import com.amazonaws.services.cognitoidp.model.*;
-import com.r2playground.service.auth.domain.AwsCognitoResponse;
 import com.r2playground.service.auth.domain.AwsUser;
 import com.r2playground.service.auth.exception.AuthException;
 
@@ -9,6 +8,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Provider that handles registration where:
+ *
+ * 1. User provide the password during registration without the need to verify valid/ownership of an email.
+ * 2. Performs email verification outside of user registration flow.
+ *
+ */
 public class AwsCognitoUserPasswordProvider extends AwsCognitoDefaultProvider {
 
     public AwsCognitoUserPasswordProvider(AwsCognitoCredentials credentials){

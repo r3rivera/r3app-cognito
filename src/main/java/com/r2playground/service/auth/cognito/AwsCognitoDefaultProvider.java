@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
  * Use the Cognito where the username is an email address. The sign up flow are as follows:
  *
  * 1. User registers and cognito will send a temporary password to the user's email
- * 2. User logs in using the temporary password.
+ * 2. User logs in using the temporary password. (performs email verification)
  * 3. User must change the temporary password with a new password.
  * 4. User logs in as part of successful password change.
  *

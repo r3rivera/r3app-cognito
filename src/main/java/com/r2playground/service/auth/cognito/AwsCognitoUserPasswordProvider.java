@@ -91,6 +91,22 @@ public class AwsCognitoUserPasswordProvider extends AwsCognitoDefaultProvider {
     }
 
 
+    @Override
+    public boolean verifyUserEmailAttribute(String accessToken) {
+        final GetUserAttributeVerificationCodeRequest verificationCodeRequest = new GetUserAttributeVerificationCodeRequest()
+                .withAccessToken(accessToken)
+                .withAttributeName("email");
+        GetUserAttributeVerificationCodeResult verificationCodeResult;
+        try {
+            //Sends an email with a verification code
+            verificationCodeResult = getIdentityProvider().getUserAttributeVerificationCode(verificationCodeRequest);
+        }catch(InvalidParameterException invex){
+            throw new AuthException("R3AppAuth::InvalidParameterProvided", invex);
+        }catch(CodeDeliveryFailureException codex){
+            throw new AuthException("R3AppAuth::CodeDeliveryError", codex);
+        }
+        return (verificationCodeResult.getSdkHttpMetadata().getHttpStatusCode() == 200);
+    }
 
 
 }

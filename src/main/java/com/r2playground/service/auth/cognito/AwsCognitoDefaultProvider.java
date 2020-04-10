@@ -308,7 +308,7 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider implements
             throw new AuthException("R3AppAuth::NotAUthorized", ex);
         }catch(LimitExceededException ex){
             throw new AuthException("R3AppAuth::LimitExceedException", ex);
-        }catch(Exception ex){
+                            }catch(Exception ex){
             throw new AuthException("R3AppAuth::GenericError", ex);
         }
         return new AwsCognitoResponse(null, result != null);
@@ -383,6 +383,11 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider implements
             throw new AuthException("R3AppAuth::GenericError", ex);
         }
         return new AwsCognitoResponse(null, result != null);
+    }
+
+    @Override
+    public boolean verifyUserEmailAttribute(String username) {
+        throw new UnsupportedOperationException("Not supported for this functionality!");
     }
 
 

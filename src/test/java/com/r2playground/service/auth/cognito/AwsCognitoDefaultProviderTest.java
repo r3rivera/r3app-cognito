@@ -89,4 +89,14 @@ public class AwsCognitoDefaultProviderTest {
 
     }
 
+    @Test
+    @DisplayName("Verify Email Attribute")
+    public void verifyEmailAttributeTest(){
+        assertNotNull(TEST_EMAIL);
+        final AwsCognitoResponse loginResp = provider.loginUser(TEST_EMAIL, "S0meDumbPasswd!");
+
+        boolean response = provider.verifyUserEmailAttribute(loginResp.getResult().getAccessToken());
+        assertTrue(response);
+    }
+
 }

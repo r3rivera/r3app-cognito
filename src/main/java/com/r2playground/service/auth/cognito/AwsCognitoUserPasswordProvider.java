@@ -1,11 +1,13 @@
 package com.r2playground.service.auth.cognito;
 
 import com.amazonaws.services.cognitoidp.model.*;
+import com.r2playground.service.auth.domain.AwsCognitoResponse;
 import com.r2playground.service.auth.domain.AwsUser;
 import com.r2playground.service.auth.exception.AuthException;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -103,6 +105,7 @@ public class AwsCognitoUserPasswordProvider extends AwsCognitoDefaultProvider {
         final GetUserAttributeVerificationCodeRequest verificationCodeRequest = new GetUserAttributeVerificationCodeRequest()
                 .withAccessToken(accessToken)
                 .withAttributeName("email");
+
         GetUserAttributeVerificationCodeResult verificationCodeResult;
         try {
             //Sends an email with a verification code
@@ -132,5 +135,71 @@ public class AwsCognitoUserPasswordProvider extends AwsCognitoDefaultProvider {
         }
         return (verifyEmailResult != null && verifyEmailResult.getSdkHttpMetadata().getHttpStatusCode() == 200);
 
+    }
+
+    /**
+     * Invoke a forgotten password for a given username. If the user is still using the temp password and requesting for this flow
+     * then provider will throw a NotAuthorizedException
+     *
+     * @param username
+     *
+     */
+    public AwsCognitoResponse forgotPassword(String username) {
+
+        final AdminGetUserRequest adminGetUserRequest = new AdminGetUserRequest()
+                .withUserPoolId(getAwsCognitoConfig().getPoolId())
+                .withUsername(username);
+
+        AdminGetUserResult result;
+        try {
+
+            //Check if the email is verified.
+            result = getIdentityProvider().adminGetUser(adminGetUserRequest);
+            boolean emailVerified = false;
+            if (result != null) {
+                final List<AttributeType> attribs = result.getUserAttributes();
+                for(AttributeType type : attribs){
+                    if("email_verified".equals(type.getName())){
+                        emailVerified = Boolean.parseBoolean(type.getValue());
+                        break;
+                    }
+                }
+            }
+
+            if (emailVerified) {
+                //Initial Forgot Password
+                return super.forgotPassword(username);
+
+            }else{
+
+
+                final AttributeType emailVerifiedType = new AttributeType().withName("email_verified").withValue("true");
+                //Update the email_verified to true and see what happens
+                final AdminUpdateUserAttributesRequest updateUserAttributesRequest = new AdminUpdateUserAttributesRequest()
+                        .withUserAttributes(emailVerifiedType)
+                        .withUserPoolId(getAwsCognitoConfig().getPoolId())
+                        .withUsername(username);
+                final AdminUpdateUserAttributesResult updResult = getIdentityProvider().adminUpdateUserAttributes(updateUserAttributesRequest);
+
+                if(updResult != null && updResult.getSdkHttpMetadata().getHttpStatusCode() == 200) {
+
+                    final AdminResetUserPasswordRequest resetUserPasswordRequest = new AdminResetUserPasswordRequest()
+                            .withUserPoolId(getAwsCognitoConfig().getPoolId())
+                            .withUsername(username);
+                    final AdminResetUserPasswordResult passwordResult = getIdentityProvider()
+                            .adminResetUserPassword(resetUserPasswordRequest);
+
+                    if (passwordResult != null) {
+                        return new AwsCognitoResponse(null, passwordResult.getSdkHttpMetadata().getHttpStatusCode() == 200);
+                    }
+                }
+
+            }
+
+
+        } catch (Exception ex) {
+            throw new AuthException("R3AppAuth::GenericError", ex);
+        }
+        return new AwsCognitoResponse(null, false);
     }
 }

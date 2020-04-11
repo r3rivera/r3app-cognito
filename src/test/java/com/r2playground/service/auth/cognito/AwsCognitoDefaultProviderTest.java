@@ -113,4 +113,22 @@ public class AwsCognitoDefaultProviderTest {
         assertTrue(response);
     }
 
+    @Test
+    @DisplayName("Perform forgot password")
+    public void forgotPasswordTest(){
+        assertNotNull(TEST_EMAIL);
+        final AwsCognitoResponse forgotPasswdResp = provider.forgotPassword(TEST_EMAIL);
+        assertTrue(forgotPasswdResp.isSuccess());
+    }
+
+
+    @Test
+    @DisplayName("Perform password reset after initiating forgot password")
+    public void resetPasswordFromForgotTest(){
+        String verifyCode = "814292";
+        assertNotNull(TEST_EMAIL);
+        final AwsCognitoResponse resetPasswdResp = provider.confirmForgotPassword(TEST_EMAIL, "S0meDumbPasswd!", verifyCode);
+        assertTrue(resetPasswdResp.isSuccess());
+    }
+
 }

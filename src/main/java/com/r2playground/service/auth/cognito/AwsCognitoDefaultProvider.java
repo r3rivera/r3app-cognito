@@ -343,7 +343,7 @@ public class AwsCognitoDefaultProvider extends AwsCognitoBaseProvider implements
         }catch(Exception ex){
             throw new AuthException("R3AppAuth::GenericError", ex);
         }
-        return new AwsCognitoResponse(null, result != null);
+        return new AwsCognitoResponse(null, result != null && result.getSdkHttpMetadata().getHttpStatusCode() == 200);
     }
 
 
